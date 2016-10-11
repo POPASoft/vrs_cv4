@@ -8,31 +8,39 @@
 /* Private macro */
 /* Private variables */
 uint32_t AD_value;
-uint8_t step = 0;
 
 /* Private function prototypes */
 
 /* Private functions */
 void adc_init(void);
-void timer3_init(uint16_t period_ms);
-void timer2_init(void);
+void delay(uint32_t time);
 
 
 int main(void)
 {
 	/* Initialize all configured peripherals */
 	adc_init();
-	timer2_init();
-	timer3_init(100);
 
-	/* Start ADC Software Conversion */
-	ADC_SoftwareStartConv(ADC1);
 
-  while(1) asm ("nop");
+  while(1)
+  {
+
+	  /* Start ADC Software Conversion */
+	  	ADC_SoftwareStartConv(ADC1);
+	  	while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)) asm ("nop");
+	  	 AD_value=ADC_GetConversionValue(ADC1);
+
+
+  }
 
   return 0;
 }
 
+
+void delay(uint32_t time)
+{
+	for(uint32_t i = 0; i<time; i++);
+}
 
 void adc_init(void)
 {
@@ -49,8 +57,8 @@ void adc_init(void)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_40MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	/* Configure ADCx Channel 2 as analog input */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 ;
+	/* Configure ADCx Channel 0 as analog input */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 ;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -76,7 +84,7 @@ void adc_init(void)
 	ADC_Init(ADC1, &ADC_InitStructure);
 
 	/* ADCx regular channel8 configuration */
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_2, 1, ADC_SampleTime_16Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_16Cycles);
 
 	/* Enable the ADC */
 	ADC_Cmd(ADC1, ENABLE);
@@ -84,101 +92,6 @@ void adc_init(void)
 	/* Wait until the ADC1 is ready */
 	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_ADONS) == RESET);
 
-}
-
-/* TIM3 init function */
-void timer3_init(uint16_t period_ms)
-{
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
-
-	TIM_Cmd(TIM3, DISABLE);
-	TIM_TimeBaseInitTypeDef timerInitStructure;
-	timerInitStructure.TIM_Prescaler = 15999;
-	timerInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	timerInitStructure.TIM_Period = period_ms-1;
-	timerInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInit(TIM3, &timerInitStructure);
-	TIM_Cmd(TIM3, ENABLE);
-	TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
-	
-	NVIC_InitTypeDef nvicStructure;
-	nvicStructure.NVIC_IRQChannel = TIM3_IRQn;
-	nvicStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	nvicStructure.NVIC_IRQChannelSubPriority = 1;
-	nvicStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&nvicStructure);	
-}
-
-/* TIM2 init function */
-void timer2_init(void)
-{
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-
-	TIM_Cmd(TIM2, DISABLE);
-	TIM_TimeBaseInitTypeDef timerInitStructure;
-	timerInitStructure.TIM_Prescaler = 15999;
-	timerInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	timerInitStructure.TIM_Period = 1;
-	timerInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseInit(TIM2, &timerInitStructure);
-	TIM_Cmd(TIM2, ENABLE);
-	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
-	
-	NVIC_InitTypeDef nvicStructure;
-	nvicStructure.NVIC_IRQChannel = TIM2_IRQn;
-	nvicStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	nvicStructure.NVIC_IRQChannelSubPriority = 0;
-	nvicStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init(&nvicStructure);
-}
-
-/* TIM2 Interrupt handler */
-void TIM2_IRQHandler()
-{
-	ADC_SoftwareStartConv(ADC1);
-	while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)) asm ("nop");
-	AD_value=ADC_GetConversionValue(ADC1);
-
-	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET)
-	{
-		if (AD_value >= 1 && AD_value < 2 && step!=1)
-		{
-			timer3_init(10000);	// edit
-			step = 1;
-		}
-		else if(AD_value >= 2 && AD_value < 3 && step!=2)
-		{
-			timer3_init(20000);	// edit
-			step = 2;
-		}
-		else if(AD_value >= 3 && AD_value < 4 && step!=3)
-		{
-			timer3_init(30000);	// edit
-			step = 3;
-		}
-		else if(AD_value >= 4 && AD_value < 5 && step!=4)
-		{
-			timer3_init(40000);	// edit
-			step = 4;
-		}
-		else if(AD_value >= 5 && AD_value < 6 && step!=5)
-		{
-			timer3_init(50000);	// edit
-			step = 5;
-		}
-
-		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
-	}
-}
-
-/* TIM3 Interrupt handler */
-void TIM3_IRQHandler()
-{
-	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
-	{
-		GPIO_ToggleBits(GPIOA,GPIO_Pin_5);
-		TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
-	}
 }
 
 
