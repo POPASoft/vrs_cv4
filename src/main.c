@@ -13,13 +13,16 @@ uint32_t AD_value;
 
 /* Private functions */
 void adc_init(void);
+void gpio_init(void);
 void delay(uint32_t time);
 
 
 int main(void)
 {
 	/* Initialize all configured peripherals */
+	gpio_init();
 	adc_init();
+
 
 
   while(1)
@@ -49,10 +52,9 @@ void delay(uint32_t time)
 	for(uint32_t i = 0; i<time; i++);
 }
 
-void adc_init(void)
+void gpio_init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
-	ADC_InitTypeDef ADC_InitStructure;
 
 	/* Enable GPIO clock */
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
@@ -69,6 +71,13 @@ void adc_init(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+}
+
+void adc_init(void)
+{
+
+	ADC_InitTypeDef ADC_InitStructure;
 
 	/* Enable the HSI oscillator */
 	RCC_HSICmd(ENABLE);
