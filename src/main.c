@@ -28,9 +28,31 @@ int main(void)
 	  /* Start ADC Software Conversion */
 	  	ADC_SoftwareStartConv(ADC1);
 	  	while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC)) asm ("nop");
-	  	 AD_value=ADC_GetConversionValue(ADC1);
+	  	AD_value=ADC_GetConversionValue(ADC1);
+
+		if (AD_value >= 2000 && AD_value < 2500)
+		{
+			delay(100000);
+		}
+		else if(AD_value >= 2500 && AD_value < 3000)
+		{
+			delay(200000);
+		}
+		else if(AD_value >= 3000 && AD_value < 3500)
+		{
+			delay(300000);
+		}
+		else if(AD_value >= 3500 && AD_value < 3700)
+		{
+			delay(400000);
+		}
+		else if(AD_value >= 3700 && AD_value < 4000)
+		{
+			delay(500000);
+		}else GPIO_WriteBit(GPIOA, GPIO_Pin_5,RESET);
 
 
+	  GPIO_ToggleBits(GPIOA,GPIO_Pin_5);
   }
 
   return 0;
